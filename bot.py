@@ -99,7 +99,8 @@ async def summarize(interaction: discord.Interaction, url: str):
             embed = discord.Embed(
                 title=f"📄 Summary of: {video_title}",
                 description=summary_text.split('\n\n')[0],
-                color=discord.Color.green() # Green for cached results
+                color=discord.Color.green(), # Green for cached results
+                url=url # Add this line
             )
 
             sections = re.findall(r"(\**.*?\**)\n(.*?)(?=\n\**|\Z)", summary_text, re.DOTALL)
@@ -180,7 +181,8 @@ async def summarize(interaction: discord.Interaction, url: str):
         embed = discord.Embed(
             title=f"📄 Summary of: {video_title}",
             description=summary_text.split('\n\n')[0],
-            color=discord.Color.blue()
+            color=discord.Color.blue(),
+            url=url # Add this line
         )
         sections = re.findall(r"(\*\*.*?\*\*)\n(.*?)(?=\n\*\*|\Z)", summary_text, re.DOTALL)
         for section_title, section_content in sections:
