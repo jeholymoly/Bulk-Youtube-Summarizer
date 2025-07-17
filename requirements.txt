@@ -1,0 +1,15 @@
+# Discord Bot
+discord.py
+
+# Environment variables
+python-dotenv
+
+# YouTube APIs
+youtube-transcript-api
+google-api-python-client
+
+# Google Gemini API
+google-generativeai
+
+# Google Text-to-Speech
+gTTS
