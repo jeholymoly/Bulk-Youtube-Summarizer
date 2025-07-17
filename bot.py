@@ -100,8 +100,9 @@ async def summarize(interaction: discord.Interaction, url: str):
                 title=f"📄 Summary of: {video_title}",
                 description=summary_text.split('\n\n')[0],
                 color=discord.Color.green(), # Green for cached results
-                url=url # Add this line
+                url=url
             )
+            embed.set_thumbnail(url=f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg") # Add this line
 
             sections = re.findall(r"(\**.*?\**)\n(.*?)(?=\n\**|\Z)", summary_text, re.DOTALL)
             for section_title, section_content in sections:
@@ -182,8 +183,9 @@ async def summarize(interaction: discord.Interaction, url: str):
             title=f"📄 Summary of: {video_title}",
             description=summary_text.split('\n\n')[0],
             color=discord.Color.blue(),
-            url=url # Add this line
+            url=url
         )
+        embed.set_thumbnail(url=f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg") # Add this line
         sections = re.findall(r"(\*\*.*?\*\*)\n(.*?)(?=\n\*\*|\Z)", summary_text, re.DOTALL)
         for section_title, section_content in sections:
             if section_content.strip() and len(section_content) < 1024:
