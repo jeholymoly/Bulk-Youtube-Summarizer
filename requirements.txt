@@ -7,6 +7,7 @@ python-dotenv
 # YouTube APIs
 youtube-transcript-api
 google-api-python-client
+isodate
 
 # Google Gemini API
 google-generativeai

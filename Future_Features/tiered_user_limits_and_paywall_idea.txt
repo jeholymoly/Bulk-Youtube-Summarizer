@@ -1,0 +1,50 @@
+Feature Idea: Tiered User Limits & Paywall Integration
+
+This document outlines a potential feature to evolve the bot from a single global daily summary limit to a more flexible, controllable, and monetizable system.
+
+The Core Problem
+=================
+The current system has one daily limit for all users (e.g., 20 summaries/day). This is great for basic control but doesn't allow for rewarding specific users, administrative overrides, or potential monetization.
+
+----------------------------------
+
+Option 1: Manual Tier Assignment (The Simple Approach)
+======================================================
+This approach involves creating tiers and manually assigning them to users one by one.
+
+How it Would Work:
+1. Tiers: Define a few tiers with different limits (e.g., default: 20, premium: 100, unlimited: 9999).
+2. Database: Create a new table 'user_tiers' to store which tier a specific user_id is assigned to.
+3. Admin Command: Implement a manual, admin-only command like /set_tier <user> <tier_name>.
+4. Logic: The bot checks this table to find a user's tier. If none is found, it uses the 'default' limit.
+
+Pros & Cons:
+  - Pro: Relatively simple and fast to implement.
+  - Con: Requires manual admin work for every user. Does not scale well for a large community.
+
+----------------------------------
+
+Option 2: Role-Based Tiers (The Advanced & Automated Approach)
+==============================================================
+This is the recommended and most powerful solution. Instead of assigning tiers to users, we link tiers to Discord Roles.
+
+How it Would Work:
+1. Discord Roles: You create roles in your server, like @Supporter, @VIP, @Admin.
+2. Tier Management Commands:
+   - /tier_create <tier_name> <limit>: To create a tier like "Premium" with a 100 summary limit.
+   - /tier_link_role <tier_name> <role>: To link the "Premium" tier to the @Supporter role.
+3. Automated Logic: When a user runs a command, the bot:
+   - Checks all the roles the user has.
+   - If it finds a role linked to a tier, it applies that tier's limit.
+   - If no linked roles are found, it applies the 'default' limit.
+
+Pros & Cons:
+  - Pro: Fully automated. This is the key to a "paywall." Services like Patreon or Stripe can be configured to automatically assign a Discord role on payment. The bot sees the role and grants the benefits without any manual work.
+  - Pro: Highly scalable and professional. This is how large bots manage tiered rewards.
+  - Con: More complex to build initially, as it requires more robust database tables and commands.
+
+----------------------------------
+
+Conclusion
+==========
+While the manual approach (Option 1) is a viable first step, the role-based system (Option 2) is the superior long-term solution. It provides the scalability and automation needed for a healthy, growing community and opens the door for seamless monetization in the future.

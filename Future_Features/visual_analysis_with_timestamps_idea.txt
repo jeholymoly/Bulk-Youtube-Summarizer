@@ -1,0 +1,44 @@
+Feature Idea: Visual Analysis with Timestamps
+
+This document outlines a major feature to allow the bot to "watch" a video and identify visual elements, providing timestamps for when they appear.
+
+The Core Problem
+=================
+The current bot only summarizes the spoken words (the transcript). It cannot identify visual information, such as a piece of software shown on screen but not named aloud. This feature would allow the bot to perform a much deeper, more useful analysis.
+
+The Proposed Logic
+==================
+A new command, like /analyze, would be created to trigger this process. Because this is a much more intensive and costly operation, it should be a separate command and could be linked to a premium tier (as described in the tiered limits feature idea).
+
+How it Would Work:
+1. Tooling: This feature requires adding new tools to the bot's environment, specifically 'yt-dlp' (to get video data) and 'FFmpeg' (to process video frames).
+
+2. Frame Extraction: Instead of downloading the whole video, the bot would use FFmpeg to extract key still images (frames) at regular intervals (e.g., one frame every 15 or 30 seconds). Crucially, the bot would record the exact timestamp for each frame it extracts.
+
+3. Multimodal Prompting: The bot would send a complex prompt to the Gemini API containing:
+   a. The full text transcript of the video.
+   b. The collection of key frames, each one explicitly labeled with its timestamp.
+
+4. The New Prompt Instructions: The prompt would instruct the model to act as a video analyst.
+   - Primary Goal: Identify important visual elements (software, products, charts, etc.) that are not mentioned in the text.
+   - Secondary Goal: Create a comprehensive summary based on BOTH the text and the visuals.
+   - Formatting Instruction: When listing an identified visual element, the model MUST include the timestamp of the frame where it was most clearly visible.
+
+Example Output in Discord
+=========================
+An analysis might look like this:
+
+  (Standard Embed Header)
+  
+  VISUAL ANALYSIS
+  - [02:15] Software: Visual Studio Code
+  - [04:30] Software: Docker Desktop
+  - [07:10] Website: Stack Overflow
+  - [09:45] Object: Elgato Stream Deck
+
+  (Standard Summary Sections: WHAT, WHY, HOW)
+  The summary sections would now be enriched with information from the visual analysis.
+
+Conclusion
+==========
+This feature would represent a massive leap in the bot's capabilities, providing users with highly detailed and actionable insights that go far beyond a simple text summary. It directly addresses the use case of identifying unnamed but visually present tools or objects in a video.
