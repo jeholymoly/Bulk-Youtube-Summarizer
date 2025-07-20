@@ -1,3 +1,9 @@
-feat: Explicitly set YouTube thumbnail in embeds
+feat(core): Implement channel display, user limits, and playlist improvements
 
-- Added embed.set_thumbnail() to ensure YouTube video thumbnails are displayed.
+This commit introduces several major features and fixes to enhance the bot's functionality and robustness.
+
+- **Channel Display:** The bot now fetches and displays the video's channel name in the summary embed and stores it in the database.
+- **User Rate Limiting:** Implements a daily summary limit for each user, which resets at midnight UTC. The limit is configurable in the .env file.
+- **Playlist Handling:** Improves playlist URL detection to correctly parse IDs from video links that are part of a playlist.
+- **Bug Fix:** Corrects a regular expression in the embed creation that was preventing the structured "WHAT, WHY, HOW" sections from being displayed.
+- **Documentation:** Adds a 'Future_Features' directory with documents outlining ideas for tiered permissions and visual analysis.
