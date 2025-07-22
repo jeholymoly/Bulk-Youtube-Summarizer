@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from youtube_transcript_api import TranscriptsDisabled, NoTranscriptFound
 from youtube_utils import QuotaExceededError
+from discord_utils import sanitize_title_for_markdown
 
 # --- Local Imports ---
 import db_utils
@@ -131,8 +132,8 @@ async def process_video(interaction: discord.Interaction, url: str, force_new: b
             
         video_title, duration, published_at, channel_title = details['title'], details['duration'], details['published_at'], details['channel_title']
         
-        transcript = await asyncio.to_thread(youtube_utils.get_transcript, video_id)
-        summary_text = await youtube_utils.generate_summary(transcript, video_title)
+        transcript_text, lang_code = await asyncio.to_thread(youtube_utils.get_transcript, video_id)
+        summary_text = await youtube_utils.generate_summary(transcript_text, video_title, lang_code)
         reading_time = youtube_utils.estimate_reading_time(summary_text)
         
         await asyncio.to_thread(db_utils.add_summary_to_db, url, video_title, channel_title, summary_text)
@@ -154,7 +155,8 @@ async def process_video(interaction: discord.Interaction, url: str, force_new: b
         await asyncio.to_thread(db_utils.update_summary_status, url, 'failed')
         return 'error', (error_message, video_title)
     except Exception as e:
-        error_message = f"An unexpected error occurred: {e}"
+        print(f"Caught unhandled exception for '{video_title}': {e}") # Keep detailed log for admin
+        error_message = "An unexpected error occurred. This could be due to a non-public transcript or an internal issue. The error has been logged."
         await asyncio.to_thread(db_utils.update_summary_status, url, 'failed')
         return 'error', (error_message, video_title)
 
@@ -216,18 +218,18 @@ async def handle_multiple_videos(interaction: discord.Interaction, url_list: lis
         elif status == 'limit_exceeded':
             user_limit_hit = True
             fail_count += 1
-            results_log.append({'title': video_title_for_log, 'url': url, 'status': '⚠️ Failed (User Limit)'})
+            results_log.append({'title': video_title_for_log, 'url': url, 'status': '⚠️ Failed', 'reason': data})
             await interaction.followup.send(f"❌ {data}")
         elif status == 'quota_exceeded':
             quota_hit = True
             fail_count += 1
             error_message, video_title = data
-            results_log.append({'title': video_title, 'url': url, 'status': '🛑 Quota Stop'})
+            results_log.append({'title': video_title, 'url': url, 'status': '🛑 Failed', 'reason': error_message})
             await interaction.followup.send(f"🛑 **Global API Quota Reached**\nFailed on video: **{video_title}** ({url})\n\n{error_message} The rest of the batch has been cancelled. Please try again later.")
         else: # 'error', 'invalid_url', 'in_progress'
             fail_count += 1
             error_message, video_title = data
-            results_log.append({'title': video_title, 'url': url, 'status': f'⚠️ Failed'})
+            results_log.append({'title': video_title, 'url': url, 'status': f'⚠️ Failed', 'reason': error_message})
             await interaction.followup.send(f"❌ Failed to process **{video_title}** ({url}):\n> {error_message}")
 
     # --- Final Recap Embed ---
@@ -247,9 +249,12 @@ async def handle_multiple_videos(interaction: discord.Interaction, url_list: lis
     
     recap_description_lines = []
     for result in results_log:
-        # Sanitize title for markdown link by removing brackets
-        title = result['title'].replace('[', '').replace(']', '')
-        recap_description_lines.append(f"{result['status']}: [{title}]({result['url']})")
+        # Sanitize title for markdown link to ensure it's always a valid link
+        title = sanitize_title_for_markdown(result['title'])
+        line = f"{result['status']}: [{title}]({result['url']})"
+        if 'reason' in result:
+            line += f"\n> {result['reason']}" # Add the reason on a new line, indented
+        recap_description_lines.append(line)
     
     # Join lines and handle potential character limit for the embed field
     recap_description = "\n".join(recap_description_lines)
@@ -280,8 +285,14 @@ async def summarize(interaction: discord.Interaction, urls: str, force_new: bool
         if status in ['complete', 'cached']:
             await discord_utils.send_summary(interaction=interaction, url=url, cached=(status == 'cached'), **data)
         else:
-            # This will now handle limit_exceeded, error, etc.
-            await interaction.edit_original_response(content=f"❌ Error: {data}")
+            # Handle various error statuses with appropriate messaging
+            if isinstance(data, tuple) and len(data) == 2:
+                error_message, video_title = data
+                # Sanitize the title to make it safe for a markdown link
+                sanitized_title = sanitize_title_for_markdown(video_title)
+                await interaction.edit_original_response(content=f"❌ Failed to process [{sanitized_title}]({url}):\n> {error_message}")
+            else:
+                await interaction.edit_original_response(content=f"❌ Error: {data}")
     else:
         await handle_multiple_videos(interaction, url_list, force_new)
 

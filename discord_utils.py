@@ -11,7 +11,29 @@ def sanitize_filename(title: str) -> str:
     # Truncate to a reasonable length
     return (sanitized[:100] + '..') if len(sanitized) > 100 else sanitized
 
-# in discord_utils.py
+def sanitize_title_for_markdown(title: str) -> str:
+    """
+    Sanitizes a title for use in markdown links by escaping or removing 
+    problematic characters that could break Discord's markdown parsing.
+    """
+    # Remove or escape characters that break markdown links
+    # Remove brackets entirely
+    sanitized = title.replace('[', '').replace(']', '')
+    
+    # Escape other problematic markdown characters
+    sanitized = sanitized.replace('*', '\\*')  # Escape asterisks
+    sanitized = sanitized.replace('_', '\\_')  # Escape underscores
+    sanitized = sanitized.replace('`', '\\`')  # Escape backticks
+    
+    # Remove or replace other potentially problematic characters
+    sanitized = sanitized.replace('\n', ' ')   # Replace newlines with spaces
+    sanitized = sanitized.replace('\r', ' ')   # Replace carriage returns
+    
+    # Trim whitespace
+    sanitized = sanitized.strip()
+    
+    return sanitized
+
 
 def smart_truncate(text: str, max_length: int = 1024) -> str:
     """Truncates text to a maximum length, respecting word/sentence boundaries."""

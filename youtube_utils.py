@@ -86,22 +86,33 @@ def get_video_details(video_id: str, youtube) -> dict | None:
 
 def get_transcript(video_id: str) -> tuple[str, str]:
     """
-    Fetches and formats the transcript for a video, and returns the language code.
-    This is a blocking I/O call.
+    Fetches and formats the transcript for a video, including timestamps,
+    and returns the language code. This is a blocking I/O call.
     Returns a tuple of (transcript_text, language_code).
     """
     try:
-        # Get a list of available transcripts
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         
-        # Find the best transcript (prefer manual over generated, otherwise just take the first)
-        # You could add more complex logic here to prefer certain languages
-        transcript = transcript_list.find_manually_created_transcript()
-        if not transcript:
+        # Robust transcript finding logic
+        try:
+            # Prefer English (manual or generated)
+            transcript = transcript_list.find_transcript(['en'])
+        except NoTranscriptFound:
+            # If no English transcript, fall back to the first available one
             transcript = transcript_list[0]
 
-        # Fetch the actual transcript data and join it
-        full_transcript = " ".join([item['text'] for item in transcript.fetch()])
+        transcript_data = transcript.fetch()
+        
+        formatted_transcript = []
+        for item in transcript_data:
+            # CORRECTED: Use dot notation (item.start, item.text) to access attributes
+            seconds = int(item.start)
+            hours, remainder = divmod(seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            timestamp = f"[{hours:02}:{minutes:02}:{seconds:02}]"
+            formatted_transcript.append(f"{timestamp} {item.text}")
+            
+        full_transcript = "\n".join(formatted_transcript)
         language_code = transcript.language_code
         
         return full_transcript, language_code
@@ -109,7 +120,8 @@ def get_transcript(video_id: str) -> tuple[str, str]:
     except (TranscriptsDisabled, NoTranscriptFound):
         raise
     except Exception as e:
-        print(f"An unexpected error occurred in get_transcript: {e}")
+        # Log the specific error for debugging
+        print(f"An unexpected error occurred in get_transcript for video {video_id}: {e}")
         raise
 
 async def generate_summary(transcript: str, video_title: str, language_code: str) -> str:
@@ -117,7 +129,7 @@ async def generate_summary(transcript: str, video_title: str, language_code: str
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"""
-        You are an expert video summarizer. Your primary goal is to analyze the video transcript and determine its type, then generate a structured summary tailored to that type and language.
+        You are an expert video summarizer. Your primary goal is to analyze the video transcript, which includes timestamps, and generate a structured, time-stamped summary.
 
         **Video Title:** {video_title}
         **Video Language:** {language_code}
@@ -126,12 +138,13 @@ async def generate_summary(transcript: str, video_title: str, language_code: str
 
         **Step 1: Classify the Video Content**
         First, analyze the transcript to determine if the video is primarily:
-        A) **News & Informational:** Discussing events, products, announcements, or providing information on a topic.
-        B) **Tutorial & How-To:** Providing step-by-step instructions to achieve a specific goal.
+        A) **News & Informational:** Discussing events, products, announcements, etc.
+        B) **Tutorial & How-To:** Providing step-by-step instructions.
 
-        **Step 2: Generate Summary in the Correct Format and Language**
+        **Step 2: Generate Summary with Timestamps**
         Based on the classification, use ONE of the following formats.
-        **IMPORTANT: The entire summary, including all headings and content, MUST be in the specified video language ({language_code}).**
+        **CRITICAL: For each bullet point or step you generate, you MUST append the corresponding timestamp from the transcript (e.g., `[HH:MM:SS]`). This timestamp should mark the beginning of where that specific point is discussed in the video.**
+        The entire summary, including all headings and content, MUST be in the specified video language ({language_code}).
 
         ---
         **FORMAT A: News & Informational**
@@ -139,13 +152,13 @@ async def generate_summary(transcript: str, video_title: str, language_code: str
         **Type:** News / Informational
         **Overview:** [Brief, one-paragraph summary of the main topic and purpose.]
         **Key Information:**
-        - [Bulleted list of the most important facts, findings, or announcements.]
+        - [Bulleted list of the most important facts, findings, or announcements, each with a timestamp.]
         **Entities Mentioned:**
-        - **Organization:** [Name of company or organization]
-        - **Product:** [Name of product or service]
-        - [Add other relevant entities like 'Person:', 'Location:', etc., if applicable.]
+        - **Organization:** [Name of company or organization] [HH:MM:SS]
+        - **Product:** [Name of product or service] [HH:MM:SS]
+        - [Add other relevant entities, each with a timestamp.]
         **Additional Resources:**
-        - [List any links to websites, research papers, or repositories mentioned. If none, state 'N/A'.]
+        - [List any links mentioned. If none, state 'N/A'.]
 
         ---
         **FORMAT B: Tutorial & How-To**
@@ -153,21 +166,22 @@ async def generate_summary(transcript: str, video_title: str, language_code: str
         **Type:** Tutorial / How-To
         **Objective:** [Brief, one-sentence description of what the viewer will learn to do.]
         **Prerequisites:**
-        - [Bulleted list of tools, software, accounts, or knowledge needed before starting.]
+        - [Bulleted list of tools, software, or knowledge needed, each with a timestamp if applicable.]
         **Actionable Steps:**
-        1. [First step in the process.]
-        2. [Second step in the process.]
-        3. [Continue with all necessary steps.]
+        1. [First step in the process.] [HH:MM:SS]
+        2. [Second step in the process.] [HH:MM:SS]
+        3. [Continue with all necessary steps, each with a timestamp.]
         **Resources Mentioned:**
-        - [List any links to documentation, code repositories, or download pages. If none, state 'N/A'.]
+        - [List any links mentioned. If none, state 'N/A'.]
         ---
 
         **IMPORTANT REMINDERS:**
         - Only use the format that best fits the video.
+        - **Every key point, entity, or step must end with its corresponding `[HH:MM:SS]` timestamp.**
         - The entire response must be in the language: **{language_code}**.
-        - If a specific heading within a format is not applicable (e.g., no 'Product' is mentioned), omit that line entirely.
+        - If a heading is not applicable (e.g., no 'Product' is mentioned), omit that line.
 
-        **Transcript:**
+        **Transcript with Timestamps:**
         ```
         {transcript}
         ```
