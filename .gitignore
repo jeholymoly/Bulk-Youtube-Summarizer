@@ -21,3 +21,7 @@ env/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Logs and future features
+Issue_Log/
+Future_Features/
