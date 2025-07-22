@@ -13,6 +13,24 @@ def sanitize_filename(title: str) -> str:
 
 # in discord_utils.py
 
+def smart_truncate(text: str, max_length: int = 1024) -> str:
+    """Truncates text to a maximum length, respecting word/sentence boundaries."""
+    if len(text) <= max_length:
+        return text
+
+    # Find the last period before the limit
+    cut_off_point = text.rfind('.', 0, max_length - 3)
+    # If no period, find the last space
+    if cut_off_point == -1:
+        cut_off_point = text.rfind(' ', 0, max_length - 3)
+    
+    if cut_off_point != -1:
+        # Cut at the found point and add ellipsis
+        return text[:cut_off_point] + "..."
+    else:
+        # If no space or period is found, do a hard truncate
+        return text[:max_length - 3] + "..."
+
 def create_summary_embed(
     summary_text: str, 
     video_title: str, 
@@ -21,55 +39,66 @@ def create_summary_embed(
     duration: str, 
     reading_time: str, 
     published_at: str, 
-    channel_title: str,  # Added
+    channel_title: str,
     summary_created_at: str = None, 
     cached=False
 ) -> discord.Embed:
-    """Creates the definitive embed with the two-line block metadata at the top."""
+    """
+    Creates a definitive embed with a permanent metadata block at the top 
+    and dynamically adds fields based on the summary's structure, with smart truncation.
+    """
     
-    parts = re.split(r'(\*\*.*?\*\*)', summary_text)
-    overview = parts[0].strip() if parts else "No overview provided."
-
-    # --- Step 1: Build the metadata in the exact two-line block format you want ---
-    metadata_blocks = [
-        f"**Channel:**\n{channel_title}",
-        f"**Uploaded On:**\n{published_at}",
-        f"**Video Length:**\n{duration}",
-        f"**Est. Reading Time:**\n{reading_time}"
+    # --- Step 1: Build the permanent metadata block ---
+    metadata_lines = [
+        f"**Channel:** {channel_title}",
+        f"**Uploaded On:** {published_at}",
+        f"**Video Length:** {duration}",
+        f"**Est. Reading Time:** {reading_time}"
     ]
     if cached and summary_created_at:
-        metadata_blocks.append(f"**Summary Generated:**\n{summary_created_at}")
+        metadata_lines.append(f"**Summary Generated:** {summary_created_at}")
     
-    # Join with double newlines to create the space BETWEEN each block item.
-    metadata_string = "\n\n".join(metadata_blocks)
+    metadata_string = "\n".join(metadata_lines)
 
-    # --- Step 2: Combine metadata and overview with a clean space in between ---
-    # This places the metadata block FIRST, then the overview.
-    final_description = f"{metadata_string}\n\n{overview}"
-
-    # --- Step 3: Create the embed with our perfectly ordered description ---
+    # --- Step 2: Create the embed with metadata in the description ---
     embed = discord.Embed(
         title=f"📄 Summary of: {video_title}",
-        description=final_description,
+        description=metadata_string,
         color=discord.Color.green() if cached else discord.Color.blue(),
         url=url
     )
     embed.set_thumbnail(url=f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg")
 
-    # --- Step 4: Add the WHAT, WHY, etc. sections as distinct fields ---
-    # These will appear neatly below the description block.
-    if len(parts) > 1:
-        for i in range(1, len(parts), 2):
-            section_title = parts[i].strip()
-            if i + 1 < len(parts):
-                section_content = parts[i+1].strip()
-                if section_content and len(section_content) < 1024:
-                    embed.add_field(name=section_title, value=section_content, inline=False)
+    # --- Step 3: Dynamically parse and add fields from the summary text ---
+    lines = summary_text.strip().split('\n')
+    
+    current_field_title = ""
+    current_field_value = ""
 
-    # --- Step 5: Add the footer ---
+    for line in lines:
+        match = re.match(r'\*\*(.*?):\*\*', line)
+        if match:
+            if current_field_title and current_field_value.strip():
+                # Use smart_truncate before adding the field
+                truncated_value = smart_truncate(current_field_value.strip())
+                embed.add_field(name=current_field_title, value=truncated_value, inline=False)
+            
+            current_field_title = match.group(1).strip()
+            current_field_value = line.replace(f"**{current_field_title}:**", "").strip()
+        else:
+            current_field_value += f"\n{line}"
+
+    # Add the last field if it exists, using smart_truncate
+    if current_field_title and current_field_value.strip():
+        truncated_value = smart_truncate(current_field_value.strip())
+        embed.add_field(name=current_field_title, value=truncated_value, inline=False)
+
+    # --- Step 4: Add the footer ---
     footer_text = "This summary was retrieved from the cache." if cached else "Full summary attached as a text file."
     embed.set_footer(text=footer_text)
     return embed
+
+
 
 
 

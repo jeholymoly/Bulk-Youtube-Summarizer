@@ -71,8 +71,6 @@ async def process_video(interaction: discord.Interaction, url: str, force_new: b
         return 'invalid_url', f"'{url}' is not a valid YouTube URL."
 
     # --- Rate Limiting Check ---
-    # We check the limit before touching the cache, as a user might try to spam with the same URL.
-    # The limit only applies to *new* summaries, so we check it again later if it's not cached.
     is_cached_and_complete = False
     if not force_new:
         cached_result = await asyncio.to_thread(db_utils.get_summary_from_db, url)
@@ -114,8 +112,6 @@ async def process_video(interaction: discord.Interaction, url: str, force_new: b
             "summary_created_at": summary_created_at_formatted
         }
     
-    # If we are here, it's not a cached video, so we proceed with generation.
-    # First, check for retries.
     cached_result = await asyncio.to_thread(db_utils.get_summary_from_db, url)
     if cached_result:
         status = cached_result[2]
@@ -127,6 +123,7 @@ async def process_video(interaction: discord.Interaction, url: str, force_new: b
     if record_id is None:
         return 'in_progress', f"Already processing this video: {url}"
 
+    video_title = "N/A"
     try:
         details = await asyncio.to_thread(youtube_utils.get_video_details, video_id, bot_instance.youtube_client)
         if not details:
@@ -139,7 +136,7 @@ async def process_video(interaction: discord.Interaction, url: str, force_new: b
         reading_time = youtube_utils.estimate_reading_time(summary_text)
         
         await asyncio.to_thread(db_utils.add_summary_to_db, url, video_title, channel_title, summary_text)
-        await asyncio.to_thread(db_utils.log_user_usage, user_id, url) # Log successful generation
+        await asyncio.to_thread(db_utils.log_user_usage, user_id, url)
         print(f"Successfully summarized and saved for user {user_id}: {video_title}")
         
         return 'complete', {
@@ -149,21 +146,21 @@ async def process_video(interaction: discord.Interaction, url: str, force_new: b
         }
         
     except QuotaExceededError:
-        error_message = "Oops! The global API quota has been hit. Please try again tomorrow."
+        error_message = "The global API quota has been hit."
         await asyncio.to_thread(db_utils.update_summary_status, url, 'failed')
-        return 'error', error_message
+        return 'quota_exceeded', (error_message, video_title)
     except (TranscriptsDisabled, NoTranscriptFound):
-        error_message = f"Transcripts are disabled for {url}"
+        error_message = f"Transcripts are disabled for this video."
         await asyncio.to_thread(db_utils.update_summary_status, url, 'failed')
-        return 'error', error_message
+        return 'error', (error_message, video_title)
     except Exception as e:
-        error_message = f"An error occurred with {url}: {e}"
+        error_message = f"An unexpected error occurred: {e}"
         await asyncio.to_thread(db_utils.update_summary_status, url, 'failed')
-        return 'error', error_message
+        return 'error', (error_message, video_title)
 
 # --- Slash Commands ---
 async def handle_multiple_videos(interaction: discord.Interaction, url_list: list, force_new: bool = False):
-    """Generic handler for processing a list of URLs and updating Discord."""
+    """Generic handler for processing a list of URLs and updating Discord with a final recap."""
     bot_instance = interaction.client
     if not bot_instance.youtube_client:
         await interaction.edit_original_response(content="YouTube API client is not available. Please check the bot's console.")
@@ -174,13 +171,25 @@ async def handle_multiple_videos(interaction: discord.Interaction, url_list: lis
     
     success_count = 0
     fail_count = 0
-    limit_hit = False
+    cached_count = 0
+    user_limit_hit = False
+    quota_hit = False
+    results_log = []
 
     for i, url in enumerate(url_list):
-        if limit_hit:
+        video_title_for_log = url # Default to URL if title fetch fails
+        
+        # Handle skipped videos first
+        if user_limit_hit:
             fail_count += 1
+            results_log.append({'title': video_title_for_log, 'url': url, 'status': '⏩ Skipped'})
+            continue
+        if quota_hit:
+            fail_count += 1
+            results_log.append({'title': video_title_for_log, 'url': url, 'status': '⏩ Skipped'})
             continue
 
+        # Try to get the proper video title for progress updates and logs
         video_id = youtube_utils.get_video_id(url)
         progress_title = url
         if video_id:
@@ -188,6 +197,7 @@ async def handle_multiple_videos(interaction: discord.Interaction, url_list: lis
                 details = await asyncio.to_thread(youtube_utils.get_video_details, video_id, bot_instance.youtube_client)
                 if details:
                     progress_title = details['title']
+                    video_title_for_log = progress_title # Update for log
             except Exception:
                 pass
 
@@ -195,25 +205,63 @@ async def handle_multiple_videos(interaction: discord.Interaction, url_list: lis
         
         status, data = await process_video(interaction, url, force_new)
 
-        if status in ['complete', 'cached']:
+        if status == 'complete':
             success_count += 1
-            await discord_utils.send_summary(interaction, url=url, cached=(status == 'cached'), **data)
+            results_log.append({'title': data['video_title'], 'url': url, 'status': '✅ Summarized'})
+            await discord_utils.send_summary(interaction, url=url, cached=False, **data)
+        elif status == 'cached':
+            cached_count += 1
+            results_log.append({'title': data['video_title'], 'url': url, 'status': '📄 Cached'})
+            await discord_utils.send_summary(interaction, url=url, cached=True, **data)
         elif status == 'limit_exceeded':
-            limit_hit = True
+            user_limit_hit = True
             fail_count += 1
-            await interaction.followup.send(f"❌ {data}") # Send the "limit exceeded" message
-        else:
+            results_log.append({'title': video_title_for_log, 'url': url, 'status': '⚠️ Failed (User Limit)'})
+            await interaction.followup.send(f"❌ {data}")
+        elif status == 'quota_exceeded':
+            quota_hit = True
             fail_count += 1
-            error_message = data
-            await interaction.followup.send(f"❌ Failed to process {url}:\n> {error_message}")
+            error_message, video_title = data
+            results_log.append({'title': video_title, 'url': url, 'status': '🛑 Quota Stop'})
+            await interaction.followup.send(f"🛑 **Global API Quota Reached**\nFailed on video: **{video_title}** ({url})\n\n{error_message} The rest of the batch has been cancelled. Please try again later.")
+        else: # 'error', 'invalid_url', 'in_progress'
+            fail_count += 1
+            error_message, video_title = data
+            results_log.append({'title': video_title, 'url': url, 'status': f'⚠️ Failed'})
+            await interaction.followup.send(f"❌ Failed to process **{video_title}** ({url}):\n> {error_message}")
 
-    final_message = f"✅ Batch complete! Summarized **{success_count}** videos."
-    if fail_count > 0:
-        final_message += f" Failed to process **{fail_count}**."
-    if limit_hit:
-        final_message += " Your daily limit was reached during the process."
-        
-    await interaction.edit_original_response(content=final_message)
+    # --- Final Recap Embed ---
+    await interaction.edit_original_response(content=f"✅ Batch complete! See the report below.")
+
+    recap_embed = discord.Embed(
+        title="Batch Processing Report",
+        color=discord.Color.gold()
+    )
+    recap_embed.add_field(
+        name="Overall Stats",
+        value=f"**New Summaries:** {success_count}\n"
+              f"**From Cache:** {cached_count}\n"
+              f"**Failed/Skipped:** {fail_count}",
+        inline=False
+    )
+    
+    recap_description_lines = []
+    for result in results_log:
+        # Sanitize title for markdown link by removing brackets
+        title = result['title'].replace('[', '').replace(']', '')
+        recap_description_lines.append(f"{result['status']}: [{title}]({result['url']})")
+    
+    # Join lines and handle potential character limit for the embed field
+    recap_description = "\n".join(recap_description_lines)
+    if len(recap_description) > 4096: # Embed description limit
+        recap_description = recap_description[:4090] + "\n..."
+
+    recap_embed.add_field(
+        name="Detailed Log",
+        value=recap_description if recap_description else "No videos were processed.",
+        inline=False
+    )
+    await interaction.followup.send(embed=recap_embed)
 
 
 @bot.tree.command(name="summarize", description="Summarizes one or more YouTube video URLs (space-separated).")

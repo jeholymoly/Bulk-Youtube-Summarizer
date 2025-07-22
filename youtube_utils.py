@@ -84,37 +84,88 @@ def get_video_details(video_id: str, youtube) -> dict | None:
         "channel_title": channel_title
     }
 
-def get_transcript(video_id: str) -> str:
-    """Fetches and formats the transcript for a video. This is a blocking I/O call."""
+def get_transcript(video_id: str) -> tuple[str, str]:
+    """
+    Fetches and formats the transcript for a video, and returns the language code.
+    This is a blocking I/O call.
+    Returns a tuple of (transcript_text, language_code).
+    """
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-        return " ".join([item['text'] for item in transcript_list])
+        # Get a list of available transcripts
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        
+        # Find the best transcript (prefer manual over generated, otherwise just take the first)
+        # You could add more complex logic here to prefer certain languages
+        transcript = transcript_list.find_manually_created_transcript()
+        if not transcript:
+            transcript = transcript_list[0]
+
+        # Fetch the actual transcript data and join it
+        full_transcript = " ".join([item['text'] for item in transcript.fetch()])
+        language_code = transcript.language_code
+        
+        return full_transcript, language_code
+
     except (TranscriptsDisabled, NoTranscriptFound):
         raise
     except Exception as e:
         print(f"An unexpected error occurred in get_transcript: {e}")
         raise
 
-async def generate_summary(transcript: str, video_title: str) -> str:
-    """Generates a summary using the Gemini API."""
+async def generate_summary(transcript: str, video_title: str, language_code: str) -> str:
+    """Generates a summary using the Gemini API, dynamically choosing a format and language."""
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
         prompt = f"""
-        You are an expert video summarizer. Your goal is to provide a clear, concise, and well-structured summary of a YouTube video based on its transcript.
+        You are an expert video summarizer. Your primary goal is to analyze the video transcript and determine its type, then generate a structured summary tailored to that type and language.
 
         **Video Title:** {video_title}
+        **Video Language:** {language_code}
 
         **Instructions:**
-        1.  **Overview:** Start with a brief, one-paragraph overview that captures the main topic and purpose of the video.
-        2.  **Structured Breakdown:** After the overview, create distinct sections using the following markdown headings:
-            - `**WHAT**`: What is the main subject or event discussed?
-            - `**WHY**`: Why is this topic important or relevant? What is the motivation behind the content?
-            - `**WHO**`: Who are the key people, speakers, or groups involved?
-            - `**WHEN**`: When did the events take place, or when is the information relevant?
-            - `**WHERE**`: Where is the geographical or contextual setting of the video?
-            - `**HOW**`: How are the main points demonstrated or achieved? What are the key steps or processes described?
-        3.  **Omit If Not Applicable:** If a specific section (e.g., 'WHEN') is not relevant to the video's content, simply omit it from the summary. Do not include headings for empty sections.
-        4.  **Clarity and Conciseness:** Ensure the language is clear and easy to understand. Focus on the most important information and avoid unnecessary jargon.
+
+        **Step 1: Classify the Video Content**
+        First, analyze the transcript to determine if the video is primarily:
+        A) **News & Informational:** Discussing events, products, announcements, or providing information on a topic.
+        B) **Tutorial & How-To:** Providing step-by-step instructions to achieve a specific goal.
+
+        **Step 2: Generate Summary in the Correct Format and Language**
+        Based on the classification, use ONE of the following formats.
+        **IMPORTANT: The entire summary, including all headings and content, MUST be in the specified video language ({language_code}).**
+
+        ---
+        **FORMAT A: News & Informational**
+
+        **Type:** News / Informational
+        **Overview:** [Brief, one-paragraph summary of the main topic and purpose.]
+        **Key Information:**
+        - [Bulleted list of the most important facts, findings, or announcements.]
+        **Entities Mentioned:**
+        - **Organization:** [Name of company or organization]
+        - **Product:** [Name of product or service]
+        - [Add other relevant entities like 'Person:', 'Location:', etc., if applicable.]
+        **Additional Resources:**
+        - [List any links to websites, research papers, or repositories mentioned. If none, state 'N/A'.]
+
+        ---
+        **FORMAT B: Tutorial & How-To**
+
+        **Type:** Tutorial / How-To
+        **Objective:** [Brief, one-sentence description of what the viewer will learn to do.]
+        **Prerequisites:**
+        - [Bulleted list of tools, software, accounts, or knowledge needed before starting.]
+        **Actionable Steps:**
+        1. [First step in the process.]
+        2. [Second step in the process.]
+        3. [Continue with all necessary steps.]
+        **Resources Mentioned:**
+        - [List any links to documentation, code repositories, or download pages. If none, state 'N/A'.]
+        ---
+
+        **IMPORTANT REMINDERS:**
+        - Only use the format that best fits the video.
+        - The entire response must be in the language: **{language_code}**.
+        - If a specific heading within a format is not applicable (e.g., no 'Product' is mentioned), omit that line entirely.
 
         **Transcript:**
         ```
