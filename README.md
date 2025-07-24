@@ -70,11 +70,12 @@ The bot uses Discord's slash commands.
 This bot can be run on an Android device using Termux.
 
 1.  **Install Termux:** Get the latest version from F-Droid.
-2.  **Install Python & Git:**
+2.  **Install Build Tools & Python:**
     ```bash
     pkg update && pkg upgrade
-    pkg install python git
+    pkg install python git build-essential rust
     ```
+    > **Note:** This step is crucial. The `grpcio` library (a dependency for Google's API) needs to be compiled from source on Termux, which requires the `rust` compiler and build tools. This installation may require **1.5GB to 2.5GB** of free space on your device.
 3.  **Clone the Repository:**
     ```bash
     git clone https://github.com/jeholymoly/Bulk-Youtube-Summarizer.git
