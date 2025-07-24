@@ -4,7 +4,7 @@ This Discord bot, powered by Google's Gemini API, provides on-demand, time-stamp
 
 ## Key Features
 
-- **AI-Powered Summaries:** Utilizes the Gemini 1.5 Flash model to generate intelligent, structured summaries of video transcripts.
+- **AI-Powered Summaries:** Utilizes Google's Gemini models to generate intelligent, structured summaries of video transcripts.
 - **Bulk Processing:**
     - **Multiple URLs:** Summarize several videos at once by pasting multiple URLs in a single command.
     - **Playlist Support:** Provide a playlist URL to summarize every video in it.
