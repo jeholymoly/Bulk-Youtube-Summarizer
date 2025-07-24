@@ -12,5 +12,4 @@ isodate
 # Google Gemini API
 google-generativeai
 
-# Google Text-to-Speech
-gTTS
+
