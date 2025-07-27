@@ -1,4 +1,4 @@
-docs: Make installation guide structure consistent
+docs: Add CLI instructions for Windows prerequisites
 
-- Refactor the Termux/Linux installation guide to match the A/B (Prerequisites/Installation) structure of the Windows guide.
-- Add an explicit first step for updating system packages (`pkg update` / `apt update`).
+- Add instructions for installing Python, Git, and FFmpeg on Windows using the Winget and Chocolatey package managers.
+- This provides a faster, more scriptable alternative to the GUI installation method.

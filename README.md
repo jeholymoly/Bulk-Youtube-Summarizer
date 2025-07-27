@@ -26,6 +26,9 @@ This setup is intended for a standard Windows environment.
 
 **A. Prerequisites**
 
+You can install the necessary tools using the GUI method or one of the command-line methods below.
+
+**Method 1: GUI Installation (Standard)**
 1.  **Python:** Install Python 3.9 or higher from the [official Python website](https://www.python.org/downloads/). Make sure to check the box that says **"Add Python to PATH"** during installation.
 2.  **Git:** Install Git for Windows from the [official Git website](https://git-scm.com/download/win).
 3.  **FFmpeg:** The bot requires the FFmpeg program to process audio from videos.
@@ -33,6 +36,30 @@ This setup is intended for a standard Windows environment.
     *   Extract the downloaded archive.
     *   Find the `bin` folder inside (it contains `ffmpeg.exe`).
     *   Add the full path to this `bin` folder to your Windows **System Environment Variables `Path`**. This allows the bot to find and use FFmpeg from any directory.
+
+**Method 2: Command-Line Installation (Recommended)**
+
+Choose one of the following package managers.
+
+**Using Winget (Built into Windows):**
+Open a PowerShell terminal **as Administrator** and run the following commands:
+```powershell
+# Install Python, Git, and FFmpeg
+winget install -e --id Python.Python.3.11
+winget install -e --id Git.Git
+winget install -e --id Gyan.FFmpeg
+
+# You may need to restart your terminal for the PATH changes to take effect.
+```
+
+**Using Chocolatey:**
+First, ensure you have [Chocolatey installed](https://chocolatey.org/install). Then, open a PowerShell terminal **as Administrator** and run the following command:
+```powershell
+# Install Python, Git, and FFmpeg
+choco install python git ffmpeg -y
+
+# You may need to restart your terminal for the PATH changes to take effect.
+```
 
 **B. Installation Steps**
 
