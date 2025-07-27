@@ -95,30 +95,37 @@ This setup is for running the bot in a headless environment like Termux on Andro
 
 **A. Prerequisites & System Dependencies**
 
-1.  **Update Package Lists:** Ensure all your system packages are up-to-date.
-    ```bash
-    # For Termux
-    pkg update && pkg upgrade
+This section provides the commands to install necessary system-level tools. It is critical to use the correct command for your environment.
+
+-   Use `pkg` if you are running this directly in the **main Termux environment**.
+-   Use `apt` if you are running this inside a **Debian or Ubuntu `proot-distro`** within Termux (where you are logged in as `root`).
+
+1.  **Update Package Lists:**
     
-    # For Debian/Ubuntu
-    sudo apt update && sudo apt upgrade
+    *For base Termux:*
+    ```bash
+    pkg update && pkg upgrade -y
+    ```
+    *For Debian/Ubuntu `proot-distro`:*
+    ```bash
+    apt update && apt upgrade -y
     ```
 
-2.  **Install Core Tools:** Open your terminal and install the essential packages.
+2.  **Install Core Tools:**
     
-    *For Termux on Android:*
+    *For base Termux:*
     ```bash
-    pkg install python git ffmpeg rust libtool build-essential
+    pkg install python git ffmpeg rust build-essential -y
     ```
     
-    *For Debian/Ubuntu-based Linux:*
+    *For Debian/Ubuntu `proot-distro`:*
     ```bash
-    sudo apt install python3 python3-pip git ffmpeg rustc libasound2-dev portaudio19-dev
+    apt install python3 python3-pip git ffmpeg rustc build-essential -y
     ```
 
     > **Why are these needed?**
-    > - `rust`: The `grpcio` library (a dependency for Google's API) often needs to be compiled from source on ARM systems (like Android phones), which requires the Rust compiler.
-    > - `libasound2-dev`, `portaudio19-dev`, `libtool`, `build-essential`: These are required to successfully build the `pyaudio` wheel from source, which is necessary for audio handling.
+    > - `rust`: The `grpcio` library (a dependency for Google's API) often needs to be compiled from source on ARM systems, which requires the Rust compiler.
+    > - `build-essential`: Provides the C/C++ compilers needed to build several Python packages from source.
     > - `ffmpeg`: Required for audio extraction from videos.
 
 **B. Installation Steps**

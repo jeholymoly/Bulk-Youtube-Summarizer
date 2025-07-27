@@ -1,4 +1,7 @@
-docs: Add CLI instructions for Windows prerequisites
+docs: Finalize and correct installation instructions
 
-- Add instructions for installing Python, Git, and FFmpeg on Windows using the Winget and Chocolatey package managers.
-- This provides a faster, more scriptable alternative to the GUI installation method.
+- Remove unused audio dependencies (pyaudio, etc.) from all requirements files.
+- Update README to remove unnecessary audio-related system prerequisites.
+- Clarify the use of `pkg` for base Termux vs. `apt` for `proot-distro`.
+- Remove `sudo` from `apt` commands as it's not needed in the `proot` environment.
+- Add `-y` flag to installation commands for non-interactive setup.

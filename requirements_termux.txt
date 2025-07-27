@@ -2,9 +2,6 @@
 tflite-runtime
 numpy
 Pillow
-pyaudio
-sounddevice
-wave
 openai-whisper
 ffmpeg-python
 torch
