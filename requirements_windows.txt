@@ -1,5 +1,3 @@
---extra-index-url https://google-coral.github.io/py-repo/
-tflite-runtime
 numpy
 Pillow
 pyaudio

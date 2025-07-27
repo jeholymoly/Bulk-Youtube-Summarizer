@@ -1,0 +1,3 @@
+fix: Remove unused tflite-runtime dependency
+
+The tflite-runtime package was a leftover from a previous version and is not used anywhere in the current codebase. This commit removes it from all requirements files to simplify installation and prevent unnecessary errors.
