@@ -1,0 +1,23 @@
+--extra-index-url https://google-coral.github.io/py-repo/
+tflite-runtime
+numpy
+Pillow
+pyaudio
+sounddevice
+wave
+openai-whisper
+ffmpeg-python
+torch
+torchaudio
+pytube
+youtube-transcript-api
+sumy
+nltk
+requests
+beautifulsoup4
+discord.py
+google-generativeai
+python-dotenv
+google-api-python-client
+isodate
+pysimplegui
