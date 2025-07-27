@@ -18,63 +18,65 @@ This Discord bot, powered by Google's Gemini API, provides on-demand, time-stamp
 
 ## Setup & Installation
 
-This guide is separated into two main paths: **Windows** (for running with a GUI) and **Termux/Linux** (for running in a command-line environment, like on Android or a server).
+The installation process is now much simpler as unused, heavy dependencies have been removed.
 
-### 1. Windows Installation
+### 1. Prerequisites
 
-This setup is intended for a standard Windows environment.
+You only need two things installed on your system:
+- **Python** (Version 3.9 or higher)
+- **Git**
 
-**A. Prerequisites**
-
-You can install the necessary tools using the GUI method or one of the command-line methods below.
-
-**Method 1: GUI Installation (Standard)**
-1.  **Python:** Install Python 3.9 or higher from the [official Python website](https://www.python.org/downloads/). Make sure to check the box that says **"Add Python to PATH"** during installation.
-2.  **Git:** Install Git for Windows from the [official Git website](https://git-scm.com/download/win).
-3.  **FFmpeg:** The bot requires the FFmpeg program to process audio from videos.
-    *   Download a release build from the [FFmpeg website](https://www.gyan.dev/ffmpeg/builds/).
-    *   Extract the downloaded archive.
-    *   Find the `bin` folder inside (it contains `ffmpeg.exe`).
-    *   Add the full path to this `bin` folder to your Windows **System Environment Variables `Path`**. This allows the bot to find and use FFmpeg from any directory.
-
-**Method 2: Command-Line Installation (Recommended)**
-
-Choose one of the following package managers.
-
-**Using Winget (Built into Windows):**
-Open a PowerShell terminal **as Administrator** and run the following commands:
+**For Windows:**
+You can use a package manager like [Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) or [Chocolatey](https://chocolatey.org/) for a quick setup. Open PowerShell as Administrator and run one of the following:
 ```powershell
-# Install Python, Git, and FFmpeg
-winget install -e --id Python.Python.3.11
-winget install -e --id Git.Git
-winget install -e --id Gyan.FFmpeg
+# Using Winget
+winget install -e --id Python.Python && winget install -e --id Git.Git
 
-# You may need to restart your terminal for the PATH changes to take effect.
+# Using Chocolatey
+choco install python git -y
 ```
 
-**Using Chocolatey:**
-First, ensure you have [Chocolatey installed](https://chocolatey.org/install). Then, open a PowerShell terminal **as Administrator** and run the following command:
-```powershell
-# Install Python, Git, and FFmpeg
-choco install python git ffmpeg -y
+**For Termux/Linux:**
+Use your system's package manager.
+```bash
+# For base Termux
+pkg install python git -y
 
-# You may need to restart your terminal for the PATH changes to take effect.
+# For Debian/Ubuntu (including proot-distro)
+apt install python3 python3-pip python3-venv git -y
 ```
 
-**B. Installation Steps**
+### 2. Installation Steps
 
-1.  **Clone the Repository:** Open a Command Prompt or PowerShell and run:
+1.  **Clone the Repository:**
     ```bash
     git clone https://github.com/jeholymoly/Bulk-Youtube-Summarizer.git
     cd Bulk-Youtube-Summarizer
     ```
 
-2.  **Install Dependencies:**
+2.  **Create a Virtual Environment (Recommended):**
     ```bash
-    pip install -r requirements_windows.txt
+    # For Windows
+    python -m venv venv
+    .\venv\Scripts\activate
+
+    # For Termux/Linux
+    python3 -m venv venv
+    source venv/bin/activate
     ```
 
-3.  **Configure Environment Variables:** Create a file named `.env` in the project root directory and add your API keys and settings:
+3.  **Install Dependencies:**
+    Choose the requirements file for your OS.
+    ```bash
+    # For Windows
+    pip install -r requirements_windows.txt
+
+    # For Termux/Linux
+    pip install -r requirements_termux.txt
+    ```
+
+4.  **Configure Environment Variables:**
+    Create a file named `.env` in the project directory. You can use a text editor like `nano` on Linux or `notepad` on Windows.
     ```env
     # .env
     DISCORD_BOT_TOKEN="YOUR_DISCORD_BOT_TOKEN_HERE"
@@ -83,80 +85,13 @@ choco install python git ffmpeg -y
     ```
     - `USER_DAILY_LIMIT` is optional and defaults to 20 if not set.
 
-4.  **Run the Bot:**
+5.  **Run the Bot:**
     ```bash
+    # For Windows
     python bot.py
-    ```
-    > **Note:** The first time you run the bot, it will automatically create a `summaries.db` file in the project directory to store cached summaries.
 
-### 2. Termux/Linux Installation
-
-This setup is for running the bot in a headless environment like Termux on Android or a Linux server.
-
-**A. Prerequisites & System Dependencies**
-
-This section provides the commands to install necessary system-level tools. It is critical to use the correct command for your environment.
-
--   Use `pkg` if you are running this directly in the **main Termux environment**.
--   Use `apt` if you are running this inside a **Debian or Ubuntu `proot-distro`** within Termux (where you are logged in as `root`).
-
-1.  **Update Package Lists:**
-    
-    *For base Termux:*
-    ```bash
-    pkg update && pkg upgrade -y
-    ```
-    *For Debian/Ubuntu `proot-distro`:*
-    ```bash
-    apt update && apt upgrade -y
-    ```
-
-2.  **Install Core Tools:**
-    
-    *For base Termux:*
-    ```bash
-    pkg install python git ffmpeg rust build-essential -y
-    ```
-    
-    *For Debian/Ubuntu `proot-distro`:*
-    ```bash
-    apt install python3 python3-pip git ffmpeg rustc build-essential -y
-    ```
-
-    > **Why are these needed?**
-    > - `rust`: The `grpcio` library (a dependency for Google's API) often needs to be compiled from source on ARM systems, which requires the Rust compiler.
-    > - `build-essential`: Provides the C/C++ compilers needed to build several Python packages from source.
-    > - `ffmpeg`: Required for audio extraction from videos.
-
-**B. Installation Steps**
-
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/jeholymoly/Bulk-Youtube-Summarizer.git
-    cd Bulk-Youtube-Summarizer
-    ```
-
-2.  **Install Python Dependencies:**
-    ```bash
-    pip install -r requirements_termux.txt
-    ```
-
-3.  **Configure Environment Variables:** Use a text editor like `nano` or `vim` to create your `.env` file with your API keys.
-    ```bash
-    # Example using nano
-    nano .env
-    ```
-    Paste your configuration into the file:
-    ```env
-    # .env
-    DISCORD_BOT_TOKEN="YOUR_DISCORD_BOT_TOKEN_HERE"
-    GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
-    USER_DAILY_LIMIT=20
-    ```
-
-4.  **Run the Bot:**
-    ```bash
-    python bot.py
+    # For Termux/Linux
+    python3 bot.py
     ```
     > **Note:** The first time you run the bot, it will automatically create a `summaries.db` file in the project directory to store cached summaries.
 
