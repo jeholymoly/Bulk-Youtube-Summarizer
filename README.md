@@ -20,8 +20,6 @@ This Discord bot, powered by Google's Gemini API, provides on-demand, time-stamp
 
 This guide is separated into two main paths: **Windows** (for running with a GUI) and **Termux/Linux** (for running in a command-line environment, like on Android or a server).
 
-> **Note on Repository Access:** For the `git clone` command to work, this repository must be public. If you are working with a private fork, you will need to use an SSH key or a Personal Access Token.
-
 ### 1. Windows Installation
 
 This setup is intended for a standard Windows environment.
