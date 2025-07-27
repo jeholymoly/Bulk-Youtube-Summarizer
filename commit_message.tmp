@@ -1,3 +1,4 @@
-fix: Remove unused tflite-runtime dependency
+docs: Make installation guide structure consistent
 
-The tflite-runtime package was a leftover from a previous version and is not used anywhere in the current codebase. This commit removes it from all requirements files to simplify installation and prevent unnecessary errors.
+- Refactor the Termux/Linux installation guide to match the A/B (Prerequisites/Installation) structure of the Windows guide.
+- Add an explicit first step for updating system packages (`pkg update` / `apt update`).

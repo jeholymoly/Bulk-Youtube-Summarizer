@@ -70,17 +70,24 @@ This setup is for running the bot in a headless environment like Termux on Andro
 
 **A. Prerequisites & System Dependencies**
 
-1.  **Install Core Tools:** Open your terminal and install the essential packages.
+1.  **Update Package Lists:** Ensure all your system packages are up-to-date.
+    ```bash
+    # For Termux
+    pkg update && pkg upgrade
+    
+    # For Debian/Ubuntu
+    sudo apt update && sudo apt upgrade
+    ```
+
+2.  **Install Core Tools:** Open your terminal and install the essential packages.
     
     *For Termux on Android:*
     ```bash
-    pkg update && pkg upgrade
     pkg install python git ffmpeg rust libtool build-essential
     ```
     
     *For Debian/Ubuntu-based Linux:*
     ```bash
-    sudo apt update && sudo apt upgrade
     sudo apt install python3 python3-pip git ffmpeg rustc libasound2-dev portaudio19-dev
     ```
 
@@ -89,18 +96,20 @@ This setup is for running the bot in a headless environment like Termux on Andro
     > - `libasound2-dev`, `portaudio19-dev`, `libtool`, `build-essential`: These are required to successfully build the `pyaudio` wheel from source, which is necessary for audio handling.
     > - `ffmpeg`: Required for audio extraction from videos.
 
-2.  **Clone the Repository:**
+**B. Installation Steps**
+
+1.  **Clone the Repository:**
     ```bash
     git clone https://github.com/jeholymoly/Bulk-Youtube-Summarizer.git
     cd Bulk-Youtube-Summarizer
     ```
 
-3.  **Install Python Dependencies:**
+2.  **Install Python Dependencies:**
     ```bash
     pip install -r requirements_termux.txt
     ```
 
-4.  **Configure Environment Variables:** Use a text editor like `nano` or `vim` to create your `.env` file with your API keys.
+3.  **Configure Environment Variables:** Use a text editor like `nano` or `vim` to create your `.env` file with your API keys.
     ```bash
     # Example using nano
     nano .env
@@ -113,7 +122,7 @@ This setup is for running the bot in a headless environment like Termux on Andro
     USER_DAILY_LIMIT=20
     ```
 
-5.  **Run the Bot:**
+4.  **Run the Bot:**
     ```bash
     python bot.py
     ```
