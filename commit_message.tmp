@@ -1,8 +1,0 @@
-refactor!: Remove all unused dependencies and simplify installation
-
-This is a major refactoring of the project's dependencies and documentation.
-
-- Removes a large number of unused packages from all requirements files, including torch, whisper, ffmpeg-python, numpy, and more. The project now only relies on the core Google, Discord, and transcript APIs.
-- This drastically simplifies the installation process, removing the need for complex prerequisites like FFmpeg, Rust, and various build tools.
-- The README has been completely rewritten to reflect the new, much simpler setup procedure for both Windows and Linux environments.
-- The Winget command for installing Python has been simplified to use a generic ID.
